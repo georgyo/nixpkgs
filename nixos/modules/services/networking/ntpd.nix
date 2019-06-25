@@ -23,9 +23,11 @@ let
     restrict -6 ::1
 
     ${toString (map (server: "server " + server + " iburst\n") cfg.servers)}
+
+    ${cfg.extraConfig}
   '';
 
-  ntpFlags = "-c ${configFile} -u ${ntpUser}:nogroup ${toString cfg.extraFlags}";
+  ntpFlags = "-c ${configFile} -N -u ${ntpUser}:nogroup ${toString cfg.extraFlags}";
 
 in
 
@@ -88,6 +90,21 @@ in
         default = [];
       };
 
+      extraConfig = mkOption {
+        type = types.lines;
+        default = "";
+        description = ''
+          Extra configuration directives that should be added to
+          <literal>ntp.conf</literal>
+        '';
+      };
+
+      package  = mkOption  {
+        type = types.package;
+        description = "Which NTP Package to use.";
+        example = literalExample "pkgs.ntpsec";
+        default = pkgs.ntp;
+      };
     };
 
   };
@@ -98,7 +115,7 @@ in
   config = mkIf config.services.ntp.enable {
 
     # Make tools such as ntpq available in the system path.
-    environment.systemPackages = [ pkgs.ntp ];
+    environment.systemPackages = [ cfg.package ];
     services.timesyncd.enable = mkForce false;
 
     systemd.services.systemd-timedated.environment = { SYSTEMD_TIMEDATED_NTP_SERVICES = "ntpd.service"; };
@@ -123,8 +140,13 @@ in
             chown ${ntpUser} ${stateDir}
           '';
 
+        unitConfig = {
+            ConditionCapability = "CAP_SYS_TIME";
+            Conflicts = "systemd-timesyncd.service";
+        };
+
         serviceConfig = {
-          ExecStart = "@${ntp}/bin/ntpd ntpd -g ${ntpFlags}";
+          ExecStart = "@${cfg.package}/bin/ntpd ntpd -g ${ntpFlags}";
           Type = "forking";
         };
       };
