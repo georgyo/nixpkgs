@@ -4927,6 +4927,8 @@ in
     libcap = if stdenv.isLinux then libcap else null;
   };
 
+  ntpsec = callPackage ../tools/networking/ntpsec { };
+
   numdiff = callPackage ../tools/text/numdiff { };
 
   numlockx = callPackage ../tools/X11/numlockx { };
