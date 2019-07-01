@@ -104,6 +104,7 @@ in
         description = "Which NTP Package to use.";
         example = literalExample "pkgs.ntpsec";
         default = pkgs.ntp;
+        defaultText = "pkgs.ntp";
       };
     };
 
