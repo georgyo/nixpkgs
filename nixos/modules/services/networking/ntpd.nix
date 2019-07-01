@@ -27,7 +27,7 @@ let
     ${cfg.extraConfig}
   '';
 
-  ntpFlags = "-c ${configFile} -N -u ${ntpUser}:nogroup ${toString cfg.extraFlags}";
+  ntpFlags = "-c ${configFile} -u ${ntpUser}:nogroup ${toString cfg.extraFlags}";
 
 in
 
