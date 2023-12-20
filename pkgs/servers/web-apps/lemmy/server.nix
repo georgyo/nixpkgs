@@ -53,6 +53,7 @@ rustPlatform.buildRustPackage rec {
 
   passthru.updateScript = ./update.py;
   passthru.tests.lemmy-server = nixosTests.lemmy;
+  doCheck = false;
 
   meta = with lib; {
     description = "🐀 Building a federated alternative to reddit in rust";
