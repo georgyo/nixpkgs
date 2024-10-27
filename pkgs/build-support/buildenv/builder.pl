@@ -13,10 +13,16 @@ STDOUT->autoflush(1);
 $SIG{__WARN__} = sub { warn "warning: ", @_ };
 $SIG{__DIE__}  = sub { die "error: ", @_ };
 
-my $out = $ENV{"out"};
-my $extraPrefix = $ENV{"extraPrefix"};
 
-my @pathsToLink = split ' ', $ENV{"pathsToLink"};
+my $NIX_ATTRS;
+    open FILE, $ENV{"NIX_ATTRS_JSON_FILE"};
+    $NIX_ATTRS = decode_json <FILE>;
+    close FILE;
+
+my $out = $NIX_ATTRS->{"outputs"}->{"out"};
+my $extraPrefix = $NIX_ATTRS->{"extraPrefix"};
+
+my @pathsToLink = @{ $NIX_ATTRS->{"pathsToLink"} };
 
 sub isInPathsToLink {
     my $path = shift;
@@ -218,24 +224,13 @@ sub addPkg {
     }
 }
 
-# Read packages list.
-my $pkgs;
-
-if (exists $ENV{"pkgsPath"}) {
-    open FILE, $ENV{"pkgsPath"};
-    $pkgs = <FILE>;
-    close FILE;
-} else {
-    $pkgs = $ENV{"pkgs"}
-}
-
 # Symlink to the packages that have been installed explicitly by the
 # user.
-for my $pkg (@{decode_json $pkgs}) {
-    for my $path (@{$pkg->{paths}}) {
+for my $pkg (@{ $NIX_ATTRS->{"pkgs"} }) {
+    for my $path ( @{ $pkg->{"paths"} } ) {
         addPkg($path,
-               $ENV{"ignoreCollisions"} eq "1",
-               $ENV{"checkCollisionContents"} eq "1",
+               $NIX_ATTRS->{"ignoreCollisions"} eq "1",
+               $NIX_ATTRS->{"checkCollisionContents"} eq "1",
                $pkg->{priority})
            if -e $path;
     }
@@ -251,12 +246,12 @@ while (scalar(keys %postponed) > 0) {
     my @pkgDirs = keys %postponed;
     %postponed = ();
     foreach my $pkgDir (sort @pkgDirs) {
-        addPkg($pkgDir, 2, $ENV{"checkCollisionContents"} eq "1", $priorityCounter++);
+        addPkg($pkgDir, 2, $NIX_ATTRS->{"checkCollisionContents"} eq "1", $priorityCounter++);
     }
 }
 
-my $extraPathsFilePath = $ENV{"extraPathsFrom"};
-if ($extraPathsFilePath) {
+
+foreach my $extraPathsFilePath ( @{ $NIX_ATTRS->{"extraPathsFrom"} } ) {
     open FILE, $extraPathsFilePath or die "cannot open extra paths file $extraPathsFilePath: $!";
 
     while(my $line = <FILE>) {
@@ -292,7 +287,7 @@ foreach my $relName (sort keys %symlinks) {
 print STDERR "created $nrLinks symlinks in user environment\n";
 
 
-my $manifest = $ENV{"manifest"};
+my $manifest = $NIX_ATTRS->{"manifest"};
 if ($manifest) {
     symlink($manifest, "$out/manifest") or die "cannot create manifest";
 }

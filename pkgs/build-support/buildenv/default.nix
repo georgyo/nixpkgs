@@ -79,12 +79,11 @@ in runCommand name
     inherit manifest ignoreCollisions checkCollisionContents passthru
             meta pathsToLink extraPrefix postBuild
             nativeBuildInputs buildInputs;
-    pkgs = builtins.toJSON chosenOutputs;
+    pkgs = chosenOutputs;
     extraPathsFrom = lib.optional includeClosures (writeClosure pathsForClosure);
     preferLocalBuild = true;
     allowSubstitutes = false;
-    # XXX: The size is somewhat arbitrary
-    passAsFile = if builtins.stringLength pkgs >= 128*1024 then [ "pkgs" ] else [ ];
+    __structuredAttrs = true;
   }
   ''
     ${buildPackages.perl}/bin/perl -w ${builder}
